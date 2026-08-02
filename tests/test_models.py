@@ -75,6 +75,24 @@ def test_history_mlp_gradients_finite():
         assert torch.isfinite(parameter.grad).all()
 
 
+def test_raster_cnn_shapes_and_confidences():
+    from l5study.models import RasterCNN
+
+    model = RasterCNN(in_channels=5, num_modes=3, num_future=12, pretrained=False)
+    images = torch.rand(2, 5, 64, 64)
+    predictions, log_confidences = model(images)
+    assert predictions.shape == (2, 3, 12, 2)
+    assert log_confidences.shape == (2, 3)
+    torch.testing.assert_close(
+        log_confidences.exp().sum(dim=1), torch.ones(2), rtol=1e-5, atol=1e-6
+    )
+    loss = multi_mode_nll_loss(
+        torch.randn(2, 12, 2), predictions, log_confidences, torch.ones(2, 12)
+    )
+    loss.backward()
+    assert torch.isfinite(loss)
+
+
 def test_predictor_contract_matches_evaluation():
     pytest.importorskip("l5kit")
     from l5study.evaluation import STANDARD_BASELINES

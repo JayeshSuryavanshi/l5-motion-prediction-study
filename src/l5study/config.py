@@ -2,6 +2,8 @@
 
 from typing import Any
 
+HOLDOUT_SCENE_START = 15265
+
 
 def raster_config(
     history_num_frames: int = 10,

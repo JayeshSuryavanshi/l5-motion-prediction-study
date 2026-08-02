@@ -102,24 +102,36 @@ def eval_dataset(
     history_num_frames: int = 10,
     future_num_frames: int = 50,
     step_time: float = 0.1,
+    cfg: dict | None = None,
 ) -> AgentDataset:
+    """AgentDataset over a chopped eval set. With the default stub config no
+    image is rasterized; pass a full raster config (raster_config(...)) when
+    the predictor needs sample["image"]."""
     zarr_paths = sorted(chopped_dir.glob("*.zarr"))
     if len(zarr_paths) != 1:
         raise FileNotFoundError(
             f"expected exactly one zarr in {chopped_dir}, found {zarr_paths}"
         )
     mask = np.load(chopped_dir / "mask.npz")["arr_0"]
-    cfg = stub_config(history_num_frames, future_num_frames, step_time)
-    render_context = RenderContext(
-        np.asarray(cfg["raster_params"]["raster_size"]),
-        np.asarray(cfg["raster_params"]["pixel_size"]),
-        np.asarray(cfg["raster_params"]["ego_center"]),
-        cfg["raster_params"]["set_origin_to_bottom"],
-    )
+    if cfg is None:
+        cfg = stub_config(history_num_frames, future_num_frames, step_time)
+    if cfg["raster_params"]["map_type"] == "stub":
+        render_context = RenderContext(
+            np.asarray(cfg["raster_params"]["raster_size"]),
+            np.asarray(cfg["raster_params"]["pixel_size"]),
+            np.asarray(cfg["raster_params"]["ego_center"]),
+            cfg["raster_params"]["set_origin_to_bottom"],
+        )
+        rasterizer = StubRasterizer(render_context)
+    else:
+        from l5kit.data import LocalDataManager
+        from l5kit.rasterization import build_rasterizer
+
+        rasterizer = build_rasterizer(
+            cfg, LocalDataManager(str(chopped_dir.parents[1]))
+        )
     zarr_dataset = ChunkedDataset(str(zarr_paths[0])).open()
-    return AgentDataset(
-        cfg, zarr_dataset, StubRasterizer(render_context), agents_mask=mask
-    )
+    return AgentDataset(cfg, zarr_dataset, rasterizer, agents_mask=mask)
 
 
 def run_predictors(
@@ -129,14 +141,16 @@ def run_predictors(
     history_num_frames: int = 10,
     future_num_frames: int = 50,
     step_time: float = 0.1,
+    cfg: dict | None = None,
 ) -> dict[str, dict[str, float]]:
-    """Run map-free predictors over a chopped eval set and score them.
+    """Run predictors over a chopped eval set and score them.
 
     Returns {predictor_name: {metric_name: value}}; per-predictor prediction
-    CSVs are left in out_dir for inspection.
+    CSVs are left in out_dir for inspection. Pass a raster cfg when the
+    predictors need sample["image"].
     """
     dataset = eval_dataset(
-        chopped_dir, history_num_frames, future_num_frames, step_time
+        chopped_dir, history_num_frames, future_num_frames, step_time, cfg=cfg
     )
     out_dir.mkdir(parents=True, exist_ok=True)
     timestamps: list[int] = []
