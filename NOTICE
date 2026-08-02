@@ -1,0 +1,11 @@
+l5study
+Copyright 2026 Jayesh Suryavanshi
+
+This project depends on l5kit (https://github.com/woven-by-toyota/l5kit),
+licensed under the Apache License 2.0. l5kit is installed at setup time and
+receives a small numpy-compatibility patch (scripts/patch_l5kit.py); no l5kit
+source is redistributed in this repository.
+
+The experiments consume the Lyft Level 5 Prediction dataset, which is
+licensed CC BY-NC-SA 4.0 by its authors and is not redistributed in this
+repository in any form.

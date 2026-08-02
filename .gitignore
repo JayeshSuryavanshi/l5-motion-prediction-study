@@ -1,0 +1,27 @@
+# environments
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+dist/
+
+# credentials
+kaggle.json
+.kaggle/
+
+# data and training artifacts are never committed
+data/
+*.zip
+*.tar
+*.tar.*
+results/**/pred_*.csv
+checkpoints/
+runs/
+*.zarr/
+*.bin
+*.pt
+*.pth
+
+# os
+.DS_Store
