@@ -30,7 +30,7 @@ The ladder, from no learning to small learned models:
 |---|-------|-----|---------|--------|
 | E0 | Stationary / constant velocity / constant turn | no | no | done |
 | E1 | Three-mode kinematic mixture | no | no | done |
-| E2 | History-only MLP | no | yes | pending |
+| E2 | History-only MLP | no | yes | done |
 | E3 | Raster CNN (resnet18, 128 px) | yes | yes | pending |
 | E4 | Raster CNN (resnet18, 224 px) | yes | yes | pending |
 | E5 | Vectorized model (polyline encoder + attention) | yes | yes | pending |
@@ -43,14 +43,21 @@ data-scaling curve.
 
 Frozen holdout: the last 1,000 scenes of `train.zarr` (scenes 15,265 to
 16,264, never used for training), chopped at frame 100, giving 6,138
-agents with a 5-second future each. Metric columns: multi-modal negative
-log-likelihood (the competition metric, lower is better), and best-mode
-average / final displacement error in meters. Reproduce with
+agents with a 5-second future each. The two splits share no frames: the
+scene cut is a contiguous index cut, and l5kit builds each sample's
+history and future strictly within its own scene (verified; the nearest
+holdout ground-truth frame lies more than 10 seconds past the boundary).
+Metric columns: multi-modal negative log-likelihood (the competition
+metric, lower is better), and best-mode average / final displacement
+error in meters. Baselines reproduce with
 `uv run python scripts/run_baselines.py --zarr data/scenes/holdout.zarr`
-(no seeds involved; the baselines are deterministic).
+(deterministic, no seeds); E2 with
+`uv run python scripts/train_e2.py` (seed 0, ~30 s of training on an
+M1 Pro after one-time feature extraction).
 
 | Model | NLL | ADE | FDE |
 |-------|----:|----:|----:|
+| E2 history MLP (200k samples, no map) | 128.94 | 0.79 | 1.52 |
 | E1 kinematic mixture (3 modes) | 288.99 | 1.57 | 3.33 |
 | E0 constant velocity | 310.52 | 1.20 | 2.62 |
 | E0 constant turn | 701.74 | 1.96 | 4.49 |
@@ -59,8 +66,17 @@ average / final displacement error in meters. Reproduce with
 Early observations, to be tested further up the ladder: a mixture of three
 kinematic modes beats its own best single mode on NLL purely through mode
 diversity, even though constant velocity has the better displacement
-errors; and fitting a yaw rate from noisy 0.4-second histories actively
-hurts (constant turn loses to constant velocity across the board).
+errors; fitting a yaw rate from noisy 0.4-second histories actively
+hurts (constant turn loses to constant velocity across the board); and a
+0.7M-parameter MLP that sees only the same 11-frame history the kinematic
+baselines see, still no map, cuts NLL by more than half. One honest
+caveat on E2: its in-pool validation NLL is ~48 while the holdout NLL is
+~129; the training pool contains only agents with full 11-frame
+histories, while the holdout protocol admits partial-history agents
+(about 4.5% of the eval set) and a different agent mix at the chop
+frame, so part of E2's gap to the baselines' protocol is distribution
+shift the learned model has to absorb and the kinematic ones dodge by
+construction.
 
 A pipeline-validation run of the same baselines on the public
 `sample.zarr` split lives in `results/baselines_sample/metrics.csv`; the

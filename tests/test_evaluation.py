@@ -19,9 +19,13 @@ def test_history_oldest_first_flips_l5kit_ordering():
 @pytest.mark.parametrize("name", sorted(STANDARD_BASELINES))
 def test_standard_baselines_contract(name):
     predictor = STANDARD_BASELINES[name]
-    history = np.column_stack([np.linspace(-2.0, 0.0, 11), np.zeros(11)])
-    availabilities = np.ones(11)
-    preds, confs = predictor(history, availabilities, 50, 0.1)
+    sample = {
+        "history_positions": np.column_stack(
+            [np.linspace(0.0, -2.0, 11), np.zeros(11)]
+        ),
+        "history_availabilities": np.ones(11),
+    }
+    preds, confs = predictor(sample, 50, 0.1)
     assert preds.ndim == 3 and preds.shape[1:] == (50, 2)
     assert confs.shape == (preds.shape[0],)
     assert confs.sum() == pytest.approx(1.0)

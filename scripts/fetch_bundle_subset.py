@@ -23,7 +23,7 @@ from pathlib import Path
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from download_subset import COMPETITION, DATA_DIR, SUBSET_PREFIXES  # noqa: E402
+from download_subset import COMPETITION, DATA_DIR, SUBSET_PREFIXES
 
 BLOCK_SIZE = 32 * 2**20
 PROGRESS_EVERY = 2000

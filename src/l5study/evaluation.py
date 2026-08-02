@@ -27,9 +27,9 @@ from tqdm import tqdm
 from l5study import baselines
 from l5study.config import stub_config
 
-Predictor = Callable[
-    [np.ndarray, np.ndarray, int, float], tuple[np.ndarray, np.ndarray]
-]
+Predictor = Callable[[dict, int, float], tuple[np.ndarray, np.ndarray]]
+"""A predictor maps (l5kit agent sample, num_future, dt) to agent-frame
+predictions of shape (K, num_future, 2) plus confidences of shape (K,)."""
 
 METRICS = [
     neg_multi_log_likelihood,
@@ -39,22 +39,28 @@ METRICS = [
 
 
 def _single(fn) -> Predictor:
-    def predictor(history, availabilities, num_future, dt):
+    def predictor(sample, num_future, dt):
+        history, availabilities = history_oldest_first(sample)
         pred = fn(history, availabilities, num_future, dt=dt)
         return pred[None], np.array([1.0])
 
     return predictor
 
 
-def _mixture(history, availabilities, num_future, dt):
+def _stationary(sample, num_future, dt):
+    history, availabilities = history_oldest_first(sample)
+    return baselines.stationary(history, availabilities, num_future)[None], np.array(
+        [1.0]
+    )
+
+
+def _mixture(sample, num_future, dt):
+    history, availabilities = history_oldest_first(sample)
     return baselines.kinematic_mixture(history, availabilities, num_future, dt=dt)
 
 
 STANDARD_BASELINES: dict[str, Predictor] = {
-    "stationary": lambda h, a, n, dt: (
-        baselines.stationary(h, a, n)[None],
-        np.array([1.0]),
-    ),
+    "stationary": _stationary,
     "constant_velocity": _single(baselines.constant_velocity),
     "constant_turn": _single(baselines.constant_turn),
     "kinematic_mixture": _mixture,
@@ -138,13 +144,10 @@ def run_predictors(
     coords: dict[str, list[np.ndarray]] = {name: [] for name in predictors}
     confs: dict[str, list[np.ndarray]] = {name: [] for name in predictors}
     for sample in tqdm(dataset, desc=f"predicting {len(dataset)} agents"):
-        history, availabilities = history_oldest_first(sample)
         timestamps.append(sample["timestamp"])
         track_ids.append(sample["track_id"])
         for name, predictor in predictors.items():
-            preds, conf = predictor(
-                history, availabilities, future_num_frames, step_time
-            )
+            preds, conf = predictor(sample, future_num_frames, step_time)
             world = np.stack(
                 [
                     transform_points(p, sample["world_from_agent"])

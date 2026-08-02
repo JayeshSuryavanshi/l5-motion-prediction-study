@@ -1,0 +1,2 @@
+model,samples,epochs,hidden,depth,lr,seed,neg_multi_log_likelihood,average_displacement_error_oracle,final_displacement_error_oracle
+e2_mlp_s200000_h512_d3_lr0.001_e20_seed0,200000,20,512,3,0.001,0,128.935223,0.785997,1.518753
