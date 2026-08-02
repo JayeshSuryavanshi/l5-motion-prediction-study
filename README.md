@@ -28,8 +28,8 @@ The ladder, from no learning to small learned models:
 
 | # | Model | Map | Learned | Status |
 |---|-------|-----|---------|--------|
-| E0 | Stationary / constant velocity / constant turn | no | no | pending |
-| E1 | Three-mode kinematic mixture | no | no | pending |
+| E0 | Stationary / constant velocity / constant turn | no | no | done |
+| E1 | Three-mode kinematic mixture | no | no | done |
 | E2 | History-only MLP | no | yes | pending |
 | E3 | Raster CNN (resnet18, 128 px) | yes | yes | pending |
 | E4 | Raster CNN (resnet18, 224 px) | yes | yes | pending |
@@ -41,10 +41,31 @@ data-scaling curve.
 
 ## Results
 
-None yet on the frozen holdout. A pipeline-validation run of the
-no-learning baselines on the public `sample.zarr` split (480 agents) lives
-in `results/baselines_sample/metrics.csv`; treat those numbers as a smoke
-test of the protocol, not study results.
+Frozen holdout: the last 1,000 scenes of `train.zarr` (scenes 15,265 to
+16,264, never used for training), chopped at frame 100, giving 6,138
+agents with a 5-second future each. Metric columns: multi-modal negative
+log-likelihood (the competition metric, lower is better), and best-mode
+average / final displacement error in meters. Reproduce with
+`uv run python scripts/run_baselines.py --zarr data/scenes/holdout.zarr`
+(no seeds involved; the baselines are deterministic).
+
+| Model | NLL | ADE | FDE |
+|-------|----:|----:|----:|
+| E1 kinematic mixture (3 modes) | 288.99 | 1.57 | 3.33 |
+| E0 constant velocity | 310.52 | 1.20 | 2.62 |
+| E0 constant turn | 701.74 | 1.96 | 4.49 |
+| E0 stationary | 7496.93 | 7.57 | 13.26 |
+
+Early observations, to be tested further up the ladder: a mixture of three
+kinematic modes beats its own best single mode on NLL purely through mode
+diversity, even though constant velocity has the better displacement
+errors; and fitting a yaw rate from noisy 0.4-second histories actively
+hurts (constant turn loses to constant velocity across the board).
+
+A pipeline-validation run of the same baselines on the public
+`sample.zarr` split lives in `results/baselines_sample/metrics.csv`; the
+numbers track the holdout closely, which is a useful protocol sanity
+check, but the holdout table above is the study reference.
 
 ## Reproduce
 

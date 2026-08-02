@@ -1,0 +1,5 @@
+model,neg_multi_log_likelihood,average_displacement_error_oracle,final_displacement_error_oracle
+stationary,7496.926880,7.564623,13.261340
+constant_velocity,310.518269,1.195779,2.624430
+constant_turn,701.742352,1.963602,4.489946
+kinematic_mixture,288.989407,1.573086,3.333505
