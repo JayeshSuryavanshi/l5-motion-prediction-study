@@ -96,8 +96,15 @@ own terms.
 
 Note on l5kit: the library is archived upstream and its pinned dependencies
 no longer resolve on current Python or Apple Silicon. `make setup` installs
-it without dependencies against a modern pinned stack and applies a small
-compatibility patch for removed numpy aliases (`scripts/patch_l5kit.py`).
+it without dependencies against a modern pinned stack, then
+`scripts/patch_l5kit.py` applies two compatibility fixes. It rewrites the
+numpy aliases that numpy has since removed, and it swaps in a regenerated
+copy of l5kit's semantic map protobuf module
+(`third_party/l5kit/road_network_pb2.py`). The module l5kit ships was
+generated in 2020 and does not load on protobuf 4.21 or newer; the
+regenerated one embeds a byte-identical schema, so the parsed map is
+unchanged, and it runs on protobuf's native upb backend instead of the much
+slower pure-Python one.
 
 ## Limitations
 
